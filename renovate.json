@@ -1,0 +1,41 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "timezone": "Asia/Tokyo",
+  "dependencyDashboard": true,
+  "lockFileMaintenance": {
+    "description": "Most of package-lock.json and much of Gemfile.lock are packages nothing names directly, such as webpack's and Sinatra's own dependencies. Renovate only moves those when a named package asks for it, so the locks are rebuilt once a month to keep them current as well",
+    "enabled": true
+  },
+  "packageRules": [
+    {
+      "description": "The client is written against Mithril 0.2 (m.component, controller and view), and Mithril 1 and later changed that API, so a major update is a rewrite of every view rather than a version bump",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["mithril"],
+      "allowedVersions": "< 1"
+    },
+    {
+      "description": "The markup and the bundled bootstrap.min.css are Bootstrap 3 (glyphicons, col-xs-*), and Bootstrap 3's plugins need jQuery 1.9 to 3. Bootstrap and jQuery move as a pair, and only within those majors",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["bootstrap"],
+      "allowedVersions": "< 4"
+    },
+    {
+      "description": "See the Bootstrap rule: Bootstrap 3's plugins do not support jQuery 4",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["jquery"],
+      "allowedVersions": "< 4"
+    },
+    {
+      "description": "The viewer uses PhotoSwipe 4's constructor and its default UI, which PhotoSwipe 5 replaced with a different API",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["photoswipe"],
+      "allowedVersions": "< 5"
+    },
+    {
+      "description": "Workflows are already read by the github-actions manager. Grouping them keeps a handful of actions from arriving as a handful of pull requests, since they are updated together and reviewed the same way",
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions"
+    }
+  ]
+}
