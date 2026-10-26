@@ -58,7 +58,7 @@ class Aphrael::Image < Aphrael::Resource
 
     FileUtils.mkdir_p(File.dirname(thumbnail_path)) unless File.exist?(File.dirname(thumbnail_path))
 
-    if image.mime_type.match /gif/
+    if image.type == 'GIF'
       _image = image.collapse!
     else
       _image = image
@@ -67,14 +67,15 @@ class Aphrael::Image < Aphrael::Resource
     narrow = _image[:width] > _image[:height] ? _image[:height] : _image[:width]
     _image.combine_options do |c|
       c.gravity "center"
-      if _image.mime_type.match /gif/
+      if _image.type == 'GIF'
         c.crop "#{narrow}x#{narrow}+0+0!"
       else
         c.crop "#{narrow}x#{narrow}+0+0"
       end
      end
      _image.resize "#{256}x#{256}"
-     _image.write(thumbnail_path)
+     # Writing to a path copies the tempfile's 0600 mode, which keeps nginx out.
+     File.open(thumbnail_path, 'wb') { |io| _image.write(io) }
   rescue => ex
     require 'pp'
     pp ex

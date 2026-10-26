@@ -1,5 +1,4 @@
 'use strict';
-const webpack = require('webpack');
 const path = require('path');
 module.exports = {
     entry: [
@@ -14,13 +13,6 @@ module.exports = {
     module: {
         rules: [{
             test: /\.js?$/,
-            enforce: "pre",
-            exclude: /node_modules/,
-            use: [{
-                loader: "eslint-loader"
-            }]
-        }, {
-            test: /\.js?$/,
             exclude: /node_modules/,
             use:[{
                 loader: 'babel-loader',
@@ -29,11 +21,12 @@ module.exports = {
                 }
             }]
         }, {
+            // Bootstrap 3's plugins expect jQuery as a global.
             test: /bootstrap\/js\//,
             use:[{
                 loader: 'imports-loader',
                 options:{
-                    jQuery: 'jquery'
+                    imports: 'default jquery jQuery'
                 }
             }]
         }, {
@@ -43,13 +36,13 @@ module.exports = {
                 "css-loader"
             ]
         }, {
-            test: /\.(png|woff|woff2|eot|ttf|svg)$/,
-            use: [{
-                loader: "url-loader",
-                options: {
-                    limit: "100000"
+            test: /\.(png|woff|woff2|eot|ttf|svg|gif)$/,
+            type: 'asset',
+            parser: {
+                dataUrlCondition: {
+                    maxSize: 100000
                 }
-            }]
+            }
         }]
     }
 };
