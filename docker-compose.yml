@@ -16,7 +16,8 @@ services:
     environment:
       - "LANG=C.UTF-8"
   app:
-    image: yuanying/aphrael:dev
+    build: .
+    image: hshelf:dev
     command: bundle exec thin -R config.ru -p 9292 -e production start
     ports:
       - "9292:9292"

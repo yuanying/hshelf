@@ -49,8 +49,8 @@ class Aphrael::Directory < Aphrael::Resource
 
   def to_h
     return {
-      path: URI.escape(path),
-      name: URI.escape(File.basename(path)),
+      path: URI::RFC2396_PARSER.escape(path),
+      name: URI::RFC2396_PARSER.escape(File.basename(path)),
     }
   end
 
