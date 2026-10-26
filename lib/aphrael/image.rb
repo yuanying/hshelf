@@ -73,7 +73,7 @@ class Aphrael::Image < Aphrael::Resource
         c.crop "#{narrow}x#{narrow}+0+0"
       end
      end
-    #  _image.resize "#{128}x#{128}"
+     _image.resize "#{256}x#{256}"
      _image.write(thumbnail_path)
   rescue => ex
     require 'pp'

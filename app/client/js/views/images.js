@@ -65,7 +65,7 @@ export default {
         return m('a', attr, [
           m('.col-xs-3.col-sm-2.col-md-1.col-lg-1.image', [
             playButton,
-            m('img', { src: ctrl.thumbUrl(image) }),
+            m('img', { loading: 'lazy', src: ctrl.thumbUrl(image) }),
           ])
         ]);
       }))
