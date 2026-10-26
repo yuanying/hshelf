@@ -24,7 +24,7 @@ const index = m.component(Index, { targets: targets })
 
 m.mount(document.getElementById('navbar'),
                                 m.component(NavBar, {
-                                    title: 'Aphrael',
+                                    title: 'hshelf',
                                     favs: Favs
                                 }));
 
