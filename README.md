@@ -76,6 +76,6 @@ bundle exec thin -R config.ru -p 9292 start
 
 ## リリース
 
-`v*` のタグを push すると、GitHub Actions がイメージを build して `ghcr.io/yuanying/hshelf` に push する。タグ `v1.2.3` は、イメージのタグ `1.2.3` と `latest` になる。ブランチへの push と Pull Request では build だけを行う。
+`v*` のタグを push すると、GitHub Actions がイメージを build して `ghcr.io/yuanying/hshelf` に push する。タグ `v1.2.3` は、イメージのタグ `1.2.3`・`1.2`・`latest` になる。`main` への push と Pull Request では、テストと build だけを行う。
 
 依存（Dockerfile のベースイメージ、Gem、npm、GitHub Actions）は Renovate が追う。
