@@ -1,10 +1,13 @@
 name: Release
 
-# Once a week, releases the next patch version when every commit since the
-# latest vX.Y.Z tag, merge commits aside, is Renovate's and they changed
-# something outside .github/ and renovate.json. .github/release/plan.mjs
-# decides it and logs why; otherwise the run ends without a release, and the
-# release is left to a tag pushed by hand, as before.
+# Once a week, and as soon as a vulnerability responder's fix is merged,
+# releases the next patch version when every commit since the latest vX.Y.Z
+# tag, merge commits aside, is Renovate's or the vulnerability responder's and
+# they changed something outside .github/ and renovate.json.
+# .github/release/plan.mjs decides it and writes why to the run's summary;
+# otherwise the run ends without a release, and the release is left to a tag
+# pushed by hand, as before. When a person's commit stops a fix's release, the
+# summary lists those commits and the commands to release by hand.
 #
 # The image is pushed by image.yaml before the tag is pushed, so a failed build
 # leaves no tag behind. A tag pushed by hand still releases through image.yaml.
@@ -12,17 +15,30 @@ on:
   schedule:
     - cron: "0 0 * * 1" # Monday 09:00 JST
   workflow_dispatch:
+  # The vulnerability responder opens its fixes from vuln-responder/ branches
+  # of this repository. A merged one starts the release at once; any other
+  # pull request ends the run with every job skipped.
+  pull_request:
+    types: [closed]
+    branches: [main]
 
 permissions: {}
 
+# Weekly and on a merge alike, one release at a time. A run that waits behind
+# another reads the tags afresh, so it does not release the same commits twice.
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
   plan:
-    # A dispatch can name any branch, but a release is cut from main only.
-    if: github.ref == 'refs/heads/main'
+    # A dispatch can name any branch, but a release is cut from main only. A
+    # pull request from a fork can name its branch vuln-responder/ too.
+    if: >-
+      github.event_name != 'pull_request' && github.ref == 'refs/heads/main' ||
+      github.event_name == 'pull_request' && github.event.pull_request.merged &&
+      startsWith(github.event.pull_request.head.ref, 'vuln-responder/') &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -31,6 +47,17 @@ jobs:
       version: ${{ steps.plan.outputs.version }}
       message: ${{ steps.plan.outputs.message }}
     steps:
+      # On a merged pull request, github.sha is the commit the merge left on
+      # main, which every job here builds and tags. Stop rather than release
+      # another commit if it is not.
+      - if: github.event_name == 'pull_request'
+        env:
+          MERGED: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          if [ "$GITHUB_SHA" != "$MERGED" ]; then
+            echo "::error::github.sha ($GITHUB_SHA) is not the merge commit ($MERGED)"
+            exit 1
+          fi
       # Every tag and the history back to the latest one.
       - uses: actions/checkout@v7
         with:
