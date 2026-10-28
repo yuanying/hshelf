@@ -1,6 +1,6 @@
 name: Test
 
-# The tests outside the image: the weekly release's decision
+# The tests outside the image: the release's decision
 # (.github/release/plan.mjs). The server's tests run in image.yaml.
 on:
   push:
