@@ -1,4 +1,4 @@
-// The weekly release's decision (plan.mjs), tried against throwaway git repositories.
+// The release's decision (plan.mjs), tried against throwaway git repositories.
 // Run with `node --test .github/release/plan.test.mjs`.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -7,10 +7,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 
-import { latestVersionTag, planRelease } from "./plan.mjs";
+import { latestVersionTag, planRelease, summary } from "./plan.mjs";
 
 const user = "OTSUKA, Yuanying";
 const renovate = "renovate[bot]";
+const responder = "fraction-vuln-responder[bot]";
 
 function git(dir, args, author = user) {
   return execFileSync("git", args, {
@@ -149,6 +150,60 @@ describe("planRelease", () => {
     assert.equal(planRelease(dir).version, "v1.0.1");
   });
 
+  it("releases the next patch when only the vulnerability responder committed", () => {
+    const dir = repository();
+    tag(dir, "v1.0.0");
+    commit(dir, responder, "Update json to 2.18.1 for CVE-2026-33210", { "Gemfile.lock": "json (2.18.1)\n" });
+
+    const plan = planRelease(dir);
+
+    assert.equal(plan.version, "v1.0.1");
+    assert.equal(
+      plan.message,
+      ["v1.0.1: 脆弱性の修正（fraction-vuln-responder）", "", "- Update json to 2.18.1 for CVE-2026-33210"].join("\n"),
+    );
+  });
+
+  it("releases the next patch when the vulnerability responder and Renovate committed", () => {
+    const dir = repository();
+    tag(dir, "v1.0.0");
+    commit(dir, renovate, "Update ruby Docker tag to v4.0.10", { Dockerfile: "FROM ruby:4.0.10-alpine3.24\n" });
+    commit(dir, responder, "Update json to 2.18.1 for CVE-2026-33210", { "Gemfile.lock": "json (2.18.1)\n" });
+
+    const plan = planRelease(dir);
+
+    assert.equal(plan.version, "v1.0.1");
+    assert.equal(
+      plan.message,
+      [
+        "v1.0.1: 脆弱性の修正と依存の更新（fraction-vuln-responder・Renovate）",
+        "",
+        "- Update ruby Docker tag to v4.0.10",
+        "- Update json to 2.18.1 for CVE-2026-33210",
+      ].join("\n"),
+    );
+  });
+
+  it("releases nothing when a person committed beside the vulnerability responder, and names the commits", () => {
+    const dir = repository();
+    tag(dir, "v1.0.0");
+    commit(dir, responder, "Update json to 2.18.1 for CVE-2026-33210", { "Gemfile.lock": "json (2.18.1)\n" });
+    commit(dir, user, "Show the file name", { "app/server.rb": "# server\n" });
+    commit(dir, renovate, "Update ruby Docker tag to v4.0.10", { Dockerfile: "FROM ruby:4.0.10-alpine3.24\n" });
+
+    const plan = planRelease(dir);
+
+    assert.equal(plan.version, undefined);
+    assert.match(plan.reason, /OTSUKA, Yuanying/);
+    assert.equal(plan.next, "v1.0.1");
+    assert.equal(plan.head, git(dir, ["rev-parse", "HEAD"]).trim());
+    assert.deepEqual(
+      plan.blocked.map((c) => [c.author, c.subject]),
+      [[user, "Show the file name"]],
+    );
+    assert.match(plan.blocked[0].sha, /^[0-9a-f]{40}$/);
+  });
+
   it("releases nothing when there is no vX.Y.Z tag", () => {
     const dir = repository();
     commit(dir, renovate, "Update ruby Docker tag to v4.0.10", { Dockerfile: "FROM ruby:4.0.10-alpine3.24\n" });
@@ -157,5 +212,37 @@ describe("planRelease", () => {
 
     assert.equal(plan.version, undefined);
     assert.match(plan.reason, /vX\.Y\.Z のタグがない/);
+  });
+});
+
+describe("summary", () => {
+  it("lists the commits that stopped the release and the commands to release by hand", () => {
+    const dir = repository();
+    tag(dir, "v1.0.0");
+    commit(dir, responder, "Update json to 2.18.1 for CVE-2026-33210", { "Gemfile.lock": "json (2.18.1)\n" });
+    commit(dir, user, "Show the file name", { "app/server.rb": "# server\n" });
+    const plan = planRelease(dir);
+
+    const text = summary(plan);
+
+    assert.ok(text.includes(plan.reason));
+    assert.ok(text.includes(`${plan.blocked[0].sha.slice(0, 7)}`));
+    assert.ok(text.includes("OTSUKA, Yuanying"));
+    assert.ok(text.includes("Show the file name"));
+    assert.ok(!text.includes("Update json to 2.18.1"));
+    assert.ok(text.includes(`git tag -a v1.0.1 ${plan.head}`));
+    assert.ok(text.includes("git push origin v1.0.1"));
+  });
+
+  it("gives the reason alone when the release goes out", () => {
+    const dir = repository();
+    tag(dir, "v1.0.0");
+    commit(dir, responder, "Update json to 2.18.1 for CVE-2026-33210", { "Gemfile.lock": "json (2.18.1)\n" });
+    const plan = planRelease(dir);
+
+    const text = summary(plan);
+
+    assert.ok(text.includes(plan.reason));
+    assert.ok(!text.includes("git tag"));
   });
 });
