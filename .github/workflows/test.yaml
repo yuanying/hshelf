@@ -1,0 +1,22 @@
+name: Test
+
+# The tests outside the image: the weekly release's decision
+# (.github/release/plan.mjs). The server's tests run in image.yaml.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  release-plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # The same Node as release.yaml, which runs the decision.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: node --test .github/release/plan.test.mjs
