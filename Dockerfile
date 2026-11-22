@@ -16,7 +16,9 @@ FROM ruby:4.0.9-alpine3.24 AS base
 
 # Alpine splits the coders out of imagemagick; PNG and GIF come with it.
 # eventmachine, under thin, links against libstdc++.
-RUN apk add --no-cache imagemagick imagemagick-jpeg libstdc++
+# CVE-2026-86144: require the fixed libxml2 even when the base has an older one.
+RUN apk add --no-cache imagemagick imagemagick-jpeg libstdc++ \
+    'libxml2>=2.13.9-r3'
 
 # The cluster mounts config.yml at /myapp/configs, so the app stays here.
 ENV APP_HOME=/myapp
